@@ -233,6 +233,8 @@ class Music(commands.Cog):
             }],
             'outtmpl': './audio/song.mp3',
         }
+        if not os.path.exists('./audio'):
+            os.makedirs('./audio')
         song_there = os.path.isfile("./audio/song.mp3")
         if song_there:
             os.remove('./audio/song.mp3')
