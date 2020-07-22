@@ -1,5 +1,5 @@
-# mr-grips
-Python-based discord bot with a death grips flair
+# music-bot
+Python-based discord music bot
 
 ## Installation
 This will be assuming that you are running the bot on an Ubuntu-based Linux distribution. Instructions may need to be adjusted if using other distributions or another OS.
