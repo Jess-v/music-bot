@@ -62,7 +62,7 @@ class Music(commands.Cog):
     async def skip(self, ctx):
         '''Puts in your vote to skip the currently played song.'''
 
-        voice = self.get_voice()
+        voice = self.get_voice(ctx)
         if not self.client_in_same_channel(ctx, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
