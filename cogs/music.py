@@ -110,12 +110,16 @@ class Music(commands.Cog):
         return
 
     @commands.command()
-    async def songinfo(self, ctx, song_index=0):
+    async def songinfo(self, ctx: discord.ext.commands.Context, song_index: int = 0):
         '''Print out more information on the song currently playing.'''
+
+        queue = self.music_queues.get(ctx.guild)
 
         if song_index < 0 or song_index > (len(queue)) and song_index != 0:
             await ctx.send("A song does not exist at that index in the queue.")
             return
+        
+        embed = queue.get_embed(song_index)
         await ctx.send(embed=embed)
 
     @commands.command()
