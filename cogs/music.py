@@ -117,46 +117,30 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def remove(self, ctx, song_id=0):
+    async def remove(self, ctx: discord.ext.commands.Context, song_id: int = 0):
         '''Removes the last song you requested from the queue, or a specific song if queue position specified.'''
 
-        voice = self.get_voice(ctx)
-        if not self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+
+        if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
-        remover_id = ctx.author.id
+
         if song_id == 0:
-            music_queue = self.queue_obj.get_queue()
-            music_queue.reverse()
-            queue_length = len(music_queue)
-            loop_count = 0
-            for i in music_queue:
-                song_request_id = i.requested_by_id()
-                if remover_id == song_request_id:
-                    try:
-                        print(f'attempted removal index: {queue_length - loop_count}')
-                        song_name = i.title()
-                        self.queue_obj.remove(queue_length - loop_count)
-                        await ctx.send(f'Song "{song_name}" removed from queue.')
+            queue = self.music_queues.get(ctx.guild)
+
+            for index, song in reversed(list(enumerate(queue))):
+                if ctx.author.id == song.requested_by_id:
+                    queue.pop(index)
+                    await ctx.send(f'Song "{song.title}" removed from queue.')
                         return
-                    except:
-                        await ctx.send('Error removing song from queue.')
-                        return
-                loop_count += 1
         else:
-            try:
-                song = self.queue_obj.get_song(song_id)
-            except:
-                await ctx.send('A song does not exist at this position in the queue.')
-                return
-            song_request_id = song.requested_by_id()
-            if remover_id == song_request_id:
-                try:
-                    self.queue_obj.remove(song_id)
-                    await ctx.send('Song removed from queue.')
-                except:
-                    await ctx.send('Error removing song from queue.')
-                    return
+            queue = self.music_queues.get(ctx.guild)
+            song = queue[song_id-1]
+
+            if ctx.author.id == song.requested_by_id:
+                queue.pop(song_id-1)
+                await ctx.send(f'Song {song.title} removed from queue.')
             else:
                 await ctx.send('You cannot remove a song requested by someone else.')
 
