@@ -113,7 +113,9 @@ class Music(commands.Cog):
     async def songinfo(self, ctx, song_index=0):
         '''Print out more information on the song currently playing.'''
 
-        embed = self.queue_obj.get_embed(song_index)
+        if song_index < 0 or song_index > (len(queue)) and song_index != 0:
+            await ctx.send("A song does not exist at that index in the queue.")
+            return
         await ctx.send(embed=embed)
 
     @commands.command()
