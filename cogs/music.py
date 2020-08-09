@@ -57,14 +57,17 @@ class Music(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def stop(self, ctx):
+    async def stop(self, ctx: discord.ext.commands.Context):
         '''Admin command that stops playback of music and clears out the music queue.'''
 
-        voice = self.get_voice(ctx)
-        if self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        queue = self.music_queues.get(ctx.guild)
+
+        if self.client_in_same_channel(ctx.message.author, voice):
             voice.stop()
-            self.queue_obj.clear()
+            queue.clear()
             await ctx.send("Stopping playback")
+            await voice.disconnect()
         else:
             await ctx.send("You're not in a voice channel with me.")
 
@@ -72,40 +75,47 @@ class Music(commands.Cog):
     async def skip(self, ctx: discord.ext.commands.Context):
         '''Puts in your vote to skip the currently played song.'''
 
-        voice = self.get_voice(ctx)
-        if not self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        queue = self.music_queues.get(ctx.guild)
+
+        if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
-        if not voice or not voice.is_playing():
+        if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
-        if ctx.author in self.skip_voters:
+        if ctx.author in queue.skip_voters:
             await ctx.send("You've already voted to skip this song.")
             return
+
         channel = ctx.message.author.voice.channel
         required_votes = round(len(channel.members)/2)
-        self.skip_votes += 1
-        self.skip_voters.append(ctx.author)
-        if self.skip_votes >= required_votes:
+
+        queue.add_skip_vote(ctx.author.name)
+        voters = queue.skip_voters
+
+        if len(voters) >= required_votes:
             await ctx.send('Skipping song after successful vote.')
             voice.stop()
             return
         else:
-            await ctx.send(f'You voted to skip this song. {required_votes-self.skip_votes} more votes are required.')
+            await ctx.send(f'You voted to skip this song. {required_votes-len(voters)} more votes are required.')
             return
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def fskip(self, ctx):
+    async def fskip(self, ctx: discord.ext.commands.Context):
         '''Admin command that forces skipping of the currently playing song.'''
 
-        voice = self.get_voice(ctx)
-        if not self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+
+        if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
-        if not voice or not voice.is_playing():
+        if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
+
         voice.stop()
         return
 
