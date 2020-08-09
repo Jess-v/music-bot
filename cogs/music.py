@@ -177,45 +177,56 @@ class Music(commands.Cog):
             return
 
     @commands.command()
-    async def queue(self, ctx, page=1):
+    async def queue(self, ctx: discord.ext.commands.Context, page: int = 1):
         '''Prints out a specified page of the music queue, defaults to first page.'''
 
-        voice = self.get_voice(ctx)
-        queue_list = self.queue_obj.get_queue()
-        if not self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        queue = self.music_queues.get(ctx.guild)
+
+        if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
-        if len(queue_list) < 1:
+        
+        if len(queue) < 1:
             await ctx.send("I don't have anything in my queue right now.")
             return
-        to_send = '```\n                                 Song                                               Uploader' \
-                  '               Requested By               '
+
+        to_send = '```\n    Song                                                              Uploader              '\
+                  '              Requested By               '
         start_index = (page-1)*10
-        for x in range(start_index, start_index+10):
+
+        for index in range(start_index, start_index+10):
             try:
-                song = queue_list[x]
+                song = queue[index]
             except:
                 break
-            if song:
-                queue_pos = str(x+1) + ')'
-                title = song.title()
-                uploader = song.uploader()
-                requested_by = song.requested_by()
+            
+            if song is not None:
+                queue_pos = str(index+1) + ')'
+                title = song.title
+                uploader = song.uploader
+                requested_by = song.requested_by_username
+
                 while len(queue_pos) < 4:
                     queue_pos = queue_pos + ' '
+
                 if len(title) < 65:
                     while len(title) < 65:
                         title = title + ' '
                 else:
                     title = title[:65]
+
                 if len(uploader) < 35:
                     while len(uploader) < 35:
                         uploader = uploader + ' '
                 else:
                     uploader = uploader[:35]
+                
                 to_send = to_send + f'\n{queue_pos}{title}|{uploader}|{requested_by}'
+
             else:
                 break
+
         to_send = to_send + '\n```'
         await ctx.send(to_send)
 
