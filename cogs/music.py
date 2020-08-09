@@ -152,28 +152,29 @@ class Music(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def fremove(self, ctx, song_id=0):
+    async def fremove(self, ctx: discord.ext.commands.Context, song_id: int = 0):
         '''Admin command to forcibly remove a song from the queue by it's position.'''
 
-        voice = self.get_voice(ctx)
-        if not self.client_in_same_channel(ctx, voice):
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        queue = self.music_queues.get(guild=ctx.guild)
+
+        if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
+        
         if song_id == 0:
             await ctx.send("You need to specify a song by it's queue index.")
             return
+        
         try:
-            song = self.queue_obj.get_song(song_id)
-            song_title = song.title()
+            song = queue[song_id-1]
+            song_title = song.title
         except:
             await ctx.send("A song does not exist at this queue index.")
             return
-        try:
-            self.queue_obj.remove(song_id)
+        
+        queue.pop[song_id-1]
             await ctx.send(f"Removed {song_title} from the queue.")
-            return
-        except:
-            await ctx.send(f'Error removing song from queue.')
             return
 
     @commands.command()
