@@ -1,12 +1,12 @@
-import discord
-from discord.ext import commands
-from discord import FFmpegPCMAudio
-from discord.utils import get
-import youtube_dl
 import asyncio
+import discord
 import os
-from bot.music import Queue
-from bot.music import Song
+import youtube_dl
+from bot.music import Queue, Song
+from discord import FFmpegPCMAudio
+from discord.ext import commands
+from discord.utils import get
+from typing import List
 
 class Music(commands.Cog):
     def __init__(self, bot):
