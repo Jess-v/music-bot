@@ -2,3 +2,8 @@
 /audio.ytdl
 /music_bot.code-workspace
 /audio/
+/__pycache__
+/.idea
+/bot/__pycache__
+/cogs/__pycache__
+/venv
