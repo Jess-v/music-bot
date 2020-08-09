@@ -2,59 +2,56 @@ import discord
 import youtube_dl
 
 
-class Queue:
-    queue_data = []
-    current_song = None
+class Queue(list):
 
-    def get_queue(self):
-        return self.queue_data
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._current_song = None
+        self._skip_voters = []
 
-    def add(self, ctx, url):
-        try:
-            new_song = Song(ctx, url)
-            self.queue_data.append(new_song)
-        except:
-            raise
-
-    def remove(self, song_id):
-        index = song_id - 1
-        try:
-            temp_song = self.queue_data.pop(index)
-        except:
-            raise
+    def next_song(self):
+        song = self.pop(0)
+        self._current_song = song
+        return song
 
     def clear(self):
-        self.queue_data.clear()
-        self.current_song = None
+        super(Queue, self).clear()
+        self._current_song = None
 
-    def next(self):
-        self.current_song = self.queue_data[0]
-        self.remove(1)
-        return self.current_song
+    def add_skip_vote(self, voter: discord.Member):
+        self._skip_voters.append(voter)
 
-    def get_song(self, song_id=1):
-        index = song_id - 1
-        return self.queue_data[index]
+    def clear_skip_votes(self):
+        self._skip_voters.clear()
 
-    def get_current_song(self):
-        return self.current_song
+    @property
+    def skip_voters(self):
+        return self._skip_voters
 
-    def get_embed(self, song_id):
+    @property
+    def current_song(self):
+        return self._current_song
+
+    def get_embed(self, song_id: int):
         if song_id <= 0:
-            song = self.get_current_song()
+            song = self.current_song
         else:
-            song = self.get_song(song_id)
+            song = self[song_id-1]
+
+        if len(song.description) > 300:
+            song['description'] = f'{song.description[0:300]}...'
+
         embed = discord.Embed(title="Audio Info")
-        embed.set_thumbnail(url=song.thumbnail())
-        embed.add_field(name='Song', value=song.title(), inline=True)
-        embed.add_field(name='Uploader', value=song.uploader(), inline=True)
-        embed.add_field(name='Duration', value=song.duration_formatted(), inline=True)
-        embed.add_field(name='Description', value=song.description(), inline=True)
-        embed.add_field(name='Upload Date', value=song.upload_date_formatted(), inline=True)
-        embed.add_field(name='Views', value=song.views(), inline=True)
-        embed.add_field(name='Likes', value=song.likes(), inline=True)
-        embed.add_field(name='Dislikes', value=song.dislikes(), inline=True)
-        embed.add_field(name='Requested By', value=song.requested_by(), inline=True)
+        embed.set_thumbnail(url=song.thumbnail)
+        embed.add_field(name='Song', value=song.title, inline=True)
+        embed.add_field(name='Uploader', value=song.uploader, inline=True)
+        embed.add_field(name='Duration', value=song.duration_formatted, inline=True)
+        embed.add_field(name='Description', value=song.description, inline=True)
+        embed.add_field(name='Upload Date', value=song.upload_date_formatted, inline=True)
+        embed.add_field(name='Views', value=song.views, inline=True)
+        embed.add_field(name='Likes', value=song.likes, inline=True)
+        embed.add_field(name='Dislikes', value=song.dislikes, inline=True)
+        embed.add_field(name='Requested By', value=song.requested_by_username, inline=True)
         return embed
 
 
