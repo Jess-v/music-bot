@@ -9,7 +9,7 @@ from discord.utils import get
 from typing import List
 
 
-class Music(commands.Cog):
+class Music(commands.Cog): 
     def __init__(self, bot):
         self.bot = bot
         self.music_queues = {}
@@ -149,7 +149,7 @@ class Music(commands.Cog):
                 if ctx.author.id == song.requested_by_id:
                     queue.pop(index)
                     await ctx.send(f'Song "{song.title}" removed from queue.')
-                        return
+                    return
         else:
             queue = self.music_queues.get(ctx.guild)
             song = queue[song_id-1]
@@ -184,8 +184,8 @@ class Music(commands.Cog):
             return
         
         queue.pop[song_id-1]
-            await ctx.send(f"Removed {song_title} from the queue.")
-            return
+        await ctx.send(f"Removed {song_title} from the queue.")
+        return
 
     @commands.command()
     async def queue(self, ctx: discord.ext.commands.Context, page: int = 1):
@@ -266,11 +266,11 @@ class Music(commands.Cog):
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
                 ydl.download([f'{song.url}'])
-        except:
+            except:
                 await self.process_queue(voice, guild)
                 print('Error downloading song. Skipping.')
-            return
-
+                return
+        
         voice.play(discord.FFmpegPCMAudio(f"./audio/{guild.id}.mp3"))
         queue.clear_skip_votes()
         await self.process_queue(voice, guild)
@@ -298,12 +298,6 @@ class Music(commands.Cog):
         await asyncio.sleep(300)
         if queue.current_song == last_song:
             await voice.disconnect()
-
-    def get_voice(self, ctx):
-        '''Simple function to return a voice object'''
-
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
-        return voice
 
     @staticmethod
     def client_in_same_channel(author: discord.Member, voice: List[discord.VoiceClient]):
