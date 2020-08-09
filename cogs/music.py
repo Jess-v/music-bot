@@ -292,6 +292,21 @@ class Music(commands.Cog):
         else:
             return False
 
+    @staticmethod
+    def song_error_check(song: Song):
+        ''' Checks song properties to ensure that the song is both valid and doesn't match any filtered properties'''
+
+        if song.url is None:
+            return False, "Invalid URL provided or no video found."
+        
+        if song.get("is_live", True):
+            return False, "Invalid video - either live stream or unsupported website."
+        
+        if song.duration_raw > 1200:
+            return False, "Video is too long. Keep it under 20mins."
+        
+        return True, None
+
 
 def setup(bot):
     bot.add_cog(Music(bot))
