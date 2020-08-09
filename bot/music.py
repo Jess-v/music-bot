@@ -55,7 +55,7 @@ class Queue(list):
         return embed
 
 
-class Song:
+class Song(dict):
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
@@ -66,78 +66,73 @@ class Song:
         }],
     }
 
-    def __init__(self, ctx, url):
-        self.song_data = {}
-        with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
-            try:
-                self.song_data = ydl.extract_info(url, download=False)
-                if self.song_data.get('is_live', False):
-                    raise
-            except:
-                raise
-            if 'https' not in url:
-                try:
-                    self.song_data = ydl.extract_info(self.song_data['entries'][0]['webpage_url'], download=False)
-                    if self.song_data.get('is_live', False):
-                        raise
-                except:
-                    raise
-            self.song_data["url"] = url
-            self.song_data["requested_by"] = str(ctx.author.name)
-            self.song_data["requested_by_id"] = ctx.author.id
+    def __init__(self, url: str, author: discord.Member):
+        self.download_info(url, author)
 
+    @property
     def url(self):
-        return self.song_data.get('url', None)
+        return self.get('url', None)
 
+    @property
     def title(self):
-        return self.song_data.get('title', None)
+        return self.get('title', 'Unable To Fetch')
 
+    @property
     def uploader(self):
-        return self.song_data.get('uploader', None)
+        return self.get('uploader', 'Unable To Fetch')
 
-    def duration(self):
-        return self.song_data.get('duration', None)
+    @property
+    def duration_raw(self):
+        return self.get('duration', 0)
 
+    @property
     def duration_formatted(self):
-        raw_duration = self.song_data.get('duration', None)
-        try:
-            minutes, seconds = raw_duration // 60, raw_duration % 60
-        except:
-            return
-        formatted_duration = f'{minutes}m, {seconds}s'
-        return formatted_duration
+        minutes, seconds = self.duration_raw // 60, self.duration_raw % 60
+        return f'{minutes}m, {seconds}s'
 
+    @property
     def description(self):
-        return self.song_data.get('description', None)
+        return self.get('description', 'Unable To Fetch')
 
-    def upload_date(self):
-        return self.song_data.get('upload_date', None)
+    @property
+    def upload_date_raw(self):
+        return self.get('upload_date', '01011970')
 
+    @property
     def upload_date_formatted(self):
-        raw_date = self.song_data.get('upload_date', None)
-        try:
-            formatted_date = f'{raw_date[4:6]}/{raw_date[6:8]}/{raw_date[0:4]}'
-        except:
-            return
-        return formatted_date
+        return f'{self.upload_date_raw[4:6]}/{self.upload_date_raw[6:8]}/{self.upload_date_raw[0:4]}'
 
+    @property
     def views(self):
-        return self.song_data.get('view_count', None)
+        return self.get('view_count', 0)
 
+    @property
     def likes(self):
-        return self.song_data.get('like_count', None)
+        return self.get('like_count', 0)
 
+    @property
     def dislikes(self):
-        return self.song_data.get('dislike_count', None)
+        return self.get('dislike_count', 0)
 
+    @property
     def thumbnail(self):
-        return self.song_data.get('thumbnail', None)
+        return self.get('thumbnail', 'http://i.imgur.com/dDTCO6e.png')
 
-    def requested_by(self):
-        return self.song_data.get('requested_by', None)
+    @property
+    def requested_by_username(self):
+        return self.get('requested_by', 'foo')
 
+    @property
     def requested_by_id(self):
-        return self.song_data.get('requested_by_id', None)
+        return self.get('requested_by_id', 1)
 
-    def get_dict(self):
-        return dict(self.song_data)
+    def download_info(self, url: str, author: discord.Member):
+        with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+            self.update(ydl.extract_info(url, download=False))
+
+            if 'https' not in url:
+                self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
+
+            self["url"] = url
+            self["requested_by"] = str(author.name)
+            self["requested_by_id"] = author.id
