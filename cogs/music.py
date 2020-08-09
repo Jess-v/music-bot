@@ -281,13 +281,15 @@ class Music(commands.Cog):
         return voice
 
     @staticmethod
-    def client_in_same_channel(ctx, voice):
+    def client_in_same_channel(author: discord.Member, voice: List[discord.VoiceClient]):
         '''Checks to see if a client is in the same channel as the bot.'''
+
         try:
-            channel = ctx.message.author.voice.channel
+            channel = author.voice.channel
         except:
             return False
-        if voice and voice.is_connected() and channel == voice.channel:
+        
+        if voice is not None and voice.is_connected() and channel == voice.channel:
             return True
         else:
             return False
