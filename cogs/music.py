@@ -8,12 +8,11 @@ from discord.ext import commands
 from discord.utils import get
 from typing import List
 
+
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.skip_votes = 0
-        self.skip_voters = []
-    queue_obj = Queue()
+        self.music_queues = {}
 
     @commands.command()
     async def play(self, ctx, url, *args):
