@@ -8,8 +8,9 @@ This will be assuming that you are running the bot on an Ubuntu-based Linux dist
 - libffi
 - libnacl
 - python3-dev
+- ffmpeg
 
->sudo apt install libffi-dev libnacl-dev python3-dev
+>sudo apt install libffi-dev libnacl-dev python3-dev ffmpeg
 
 ### Python Packages
 - discord.py[voice]
