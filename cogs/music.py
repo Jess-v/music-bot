@@ -15,34 +15,45 @@ class Music(commands.Cog):
         self.music_queues = {}
 
     @commands.command()
-    async def play(self, ctx, url, *args):
+    async def play(self, ctx: discord.ext.commands.Context, url: str, *args: str):
         '''Adds a song to the queue either by YouTube URL or YouTube Search.'''
 
-        voice = self.get_voice(ctx)
-        if 'https' not in url:
-            url = 'ytsearch1:' + url + f' {" ".join(args)}'
+        music_queue = self.music_queues.get(ctx.guild, None)
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
+
+        if music_queue is None:
+            music_queue = Queue()
+            self.music_queues[ctx.guild] = music_queue
+
         try:
             channel = ctx.message.author.voice.channel
         except:
             await ctx.send("You're not connected to a voice channel.")
             return
-        if voice and not self.client_in_same_channel(ctx, voice):
+
+        if voice is not None and not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in my voice channel.")
             return
-        if not voice or not voice.is_connected():
-            await channel.connect()
-        try:
-            self.queue_obj.add(ctx, url)
-        except:
-            await ctx.send('Invalid URL or failed to search. Please try again.')
+
+        if 'https://' not in url:
+            url = 'ytsearch1:' + url + ' ' + f'{" ".join(args)}'
+
+        song = Song(url, ctx.author)
+        valid_song, song_err = self.song_error_check(song)
+
+        if not valid_song:
+            await ctx.send(song_err)
             return
-        queue_list = self.queue_obj.get_queue()
-        queued_song = queue_list[len(queue_list)-1]
-        title = queued_song.title()
-        await ctx.send(f'Queued song: {title}')
-        if not voice or not voice.is_playing():
-            song = self.queue_obj.next()
-            await self.play_song(ctx, song)
+
+        if voice is None or not voice.is_connected():
+            await channel.connect()
+            voice = get(self.bot.voice_clients, guild=ctx.guild)
+
+        music_queue.append(song)
+        await ctx.send(f'Queued song: {song.title}')
+
+        if not voice.is_playing():
+            await self.play_song(voice, ctx.guild, music_queue.next_song())
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
