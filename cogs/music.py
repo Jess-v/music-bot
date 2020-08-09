@@ -219,10 +219,10 @@ class Music(commands.Cog):
         to_send = to_send + '\n```'
         await ctx.send(to_send)
 
-    async def play_song(self, ctx, song_obj):
+    async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        queue = self.music_queues.get(guild)
         ydl_opts = {
             'format': 'bestaudio/best',
             'noplaylist': True,
@@ -231,47 +231,50 @@ class Music(commands.Cog):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'outtmpl': './audio/song.mp3',
+            'outtmpl': f'./audio/{guild.id}.mp3',
         }
+
         if not os.path.exists('./audio'):
             os.makedirs('./audio')
-        song_there = os.path.isfile("./audio/song.mp3")
+        song_there = os.path.isfile(f"./audio/{guild.id}.mp3")
+
         if song_there:
-            os.remove('./audio/song.mp3')
+            os.remove(f'./audio/{guild.id}.mp3')
+        
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
-                ydl.download([f'{song_obj.url()}'])
-            except:
-                await voice.disconnect()
-                return
-        try:
-            voice.play(discord.FFmpegPCMAudio("./audio/song.mp3"))
-            self.skip_votes = 0
-            self.skip_voters = []
-            await self.process_queue(ctx)
+                ydl.download([f'{song.url}'])
         except:
-            await voice.disconnect()
+                await self.process_queue(voice, guild)
+                print('Error downloading song. Skipping.')
             return
 
-    async def process_queue(self, ctx):
+        voice.play(discord.FFmpegPCMAudio(f"./audio/{guild.id}.mp3"))
+        queue.clear_skip_votes()
+        await self.process_queue(voice, guild)
+
+    async def process_queue(self, voice: List[discord.VoiceClient], guild: discord.Guild):
         '''Continuously checks for the opportunity to play the next video.'''
 
-        voice = self.get_voice(ctx)
+        queue = self.music_queues.get(guild)
+
         while voice.is_playing():
             await asyncio.sleep(1)
-        if len(self.queue_obj.get_queue()) > 0:
-            song = self.queue_obj.next()
-            await self.play_song(ctx, song)
-        else:
-            await self.inactivity_disconnect(ctx)
 
-    async def inactivity_disconnect(self, ctx):
+        if len(queue) > 0:
+            song = queue.next_song()
+            await self.play_song(voice, guild, song)
+        else:
+            await self.inactivity_disconnect(voice, guild)
+
+    async def inactivity_disconnect(self, voice: List[discord.VoiceClient], guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
-        voice = self.get_voice(ctx)
-        last_song = self.queue_obj.get_current_song()
+        queue = self.music_queues.get(guild)
+        last_song = queue.current_song
+
         await asyncio.sleep(300)
-        if self.queue_obj.get_current_song() == last_song:
+        if queue.current_song == last_song:
             await voice.disconnect()
 
     def get_voice(self, ctx):
