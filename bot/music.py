@@ -15,7 +15,7 @@ class Queue(list):
         return song
 
     def clear(self):
-        super(Queue, self).clear()
+        super().clear()
         self._current_song = None
 
     def add_skip_vote(self, voter: discord.Member):
