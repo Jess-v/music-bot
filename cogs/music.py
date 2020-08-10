@@ -57,8 +57,8 @@ class Music(commands.Cog):
             await ctx.send("You're not in my voice channel.")
             return
 
-        if 'https://' not in url:
-            url = 'ytsearch1:' + url + ' ' + f'{" ".join(args)}'
+        if not url.startswith('https://'):
+            url = f'ytsearch1:{url} {" ".join(args)}'
 
         song = Song(url, ctx.author)
         valid_song, song_err = self.song_error_check(song)

@@ -130,7 +130,7 @@ class Song(dict):
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
             self.update(ydl.extract_info(url, download=False))
 
-            if 'https' not in url:
+            if not url.startswith('https'):
                 self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
 
             self["url"] = url
