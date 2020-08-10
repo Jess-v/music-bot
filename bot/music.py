@@ -100,7 +100,8 @@ class Song(dict):
 
     @property
     def upload_date_formatted(self):
-        return f'{self.upload_date_raw[4:6]}/{self.upload_date_raw[6:8]}/{self.upload_date_raw[0:4]}'
+        m, d, y = self.upload_date_raw[4:6], self.upload_date_raw[6:8], self.upload_date_raw[0:4]
+        return f'{m}/{d}/{y}'
 
     @property
     def views(self):
