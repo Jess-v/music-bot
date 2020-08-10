@@ -9,7 +9,11 @@ from discord.utils import get
 from typing import List
 
 
-class Music(commands.Cog): 
+# 2 minutes, in tenths of a second
+DURATION_CEILING = 2 * 60 * 10
+
+
+class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.music_queues = {}
@@ -322,8 +326,8 @@ class Music(commands.Cog):
         
         if song.get("is_live", True):
             return False, "Invalid video - either live stream or unsupported website."
-        
-        if song.duration_raw > 1200:
+
+        if song.duration_raw > DURATION_CEILING:
             return False, "Video is too long. Keep it under 20mins."
         
         return True, None
