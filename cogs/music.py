@@ -119,10 +119,8 @@ class Music(commands.Cog):
         if len(voters) >= required_votes:
             await ctx.send('Skipping song after successful vote.')
             voice.stop()
-            return
         else:
             await ctx.send(f'You voted to skip this song. {required_votes-len(voters)} more votes are required.')
-            return
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
