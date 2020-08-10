@@ -310,10 +310,7 @@ class Music(commands.Cog):
         except:
             return False
         
-        if voice is not None and voice.is_connected() and channel == voice.channel:
-            return True
-        else:
-            return False
+        return voice is not None and voice.is_connected() and channel == voice.channel:
 
     @staticmethod
     def song_error_check(song: Song):
