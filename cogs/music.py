@@ -147,7 +147,7 @@ class Music(commands.Cog):
 
         queue = self.music_queues.get(ctx.guild)
 
-        if song_index < 0 or song_index > (len(queue)) and song_index != 0:
+        if song_index not in range(len(queue)):
             await ctx.send("A song does not exist at that index in the queue.")
             return
         
