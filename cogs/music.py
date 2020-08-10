@@ -12,6 +12,24 @@ from typing import List
 # 2 minutes, in tenths of a second
 DURATION_CEILING = 2 * 60 * 10
 
+SONGS_PER_PAGE = 10
+
+
+def set_str_len(s: str, lower_limit: int = None, upper_limit: int = None):
+    '''Pad string if shorter than lower_limit and/or trim string if longer than upper_limit'''
+
+    assert lower_limit <= upper_limit, f'set_str_len bounds invalid: attempted range {lower_limit} <= {upper_limit}'
+
+    # Extend
+    if lower_limit is not None:
+        s = f'{s:<{lower_limit}}'
+
+    # Strip
+    if upper_limit is not None:
+        s = s[:upper_limit]
+
+    return s
+
 
 class Music(commands.Cog):
     def __init__(self, bot):
@@ -208,41 +226,21 @@ class Music(commands.Cog):
 
         to_send = '```\n    Song                                                              Uploader              '\
                   '              Requested By               '
-        start_index = (page-1)*10
+        start_index = (page-1) * SONGS_PER_PAGE
+        end_index = min(start_index + SONGS_PER_PAGE, len(queue))
 
-        for index in range(start_index, start_index+10):
-            try:
-                song = queue[index]
-            except:
-                break
-            
-            if song is not None:
-                queue_pos = str(index+1) + ')'
-                title = song.title
-                uploader = song.uploader
-                requested_by = song.requested_by_username
+        for index in range(start_index, end_index):
+            song = queue[index]
 
-                while len(queue_pos) < 4:
-                    queue_pos = queue_pos + ' '
+            queue_pos = set_str_len(f'{index + 1})', lower_limit=4)
+            title = set_str_len(song.title, lower_limit=65, upper_limit=65)
+            uploader = set_str_len(song.uploader, lower_limit=35, upper_limit=35)
 
-                if len(title) < 65:
-                    while len(title) < 65:
-                        title = title + ' '
-                else:
-                    title = title[:65]
+            requested_by = song.requested_by_username
 
-                if len(uploader) < 35:
-                    while len(uploader) < 35:
-                        uploader = uploader + ' '
-                else:
-                    uploader = uploader[:35]
-                
-                to_send = to_send + f'\n{queue_pos}{title}|{uploader}|{requested_by}'
+            to_send += f'\n{queue_pos}{title}|{uploader}|{requested_by}'
 
-            else:
-                break
-
-        to_send = to_send + '\n```'
+        to_send += '\n```'
         await ctx.send(to_send)
 
     async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
