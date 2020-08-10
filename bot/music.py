@@ -121,7 +121,7 @@ class Song(dict):
 
     @property
     def requested_by_username(self):
-        return self.get('requested_by', 'foo')
+        return self.get('requested_by', 'Unknown requester')
 
     @property
     def requested_by_id(self):
