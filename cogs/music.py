@@ -258,6 +258,9 @@ class Music(commands.Cog):
     async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
 
+        audio_dir = os.path.join('.', 'audio')
+        audio_path = os.path.join(audio_dir, f'{guild.id}.mp3')
+
         queue = self.music_queues.get(guild)
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -267,15 +270,15 @@ class Music(commands.Cog):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'outtmpl': f'./audio/{guild.id}.mp3',
+            'outtmpl': audio_path
         }
 
-        if not os.path.exists('./audio'):
-            os.makedirs('./audio')
-        song_there = os.path.isfile(f"./audio/{guild.id}.mp3")
+        if not os.path.exists(audio_dir):
+            os.makedirs(audio_dir)
+        song_there = os.path.isfile(audio_path)
 
         if song_there:
-            os.remove(f'./audio/{guild.id}.mp3')
+            os.remove(audio_path)
         
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
@@ -285,7 +288,7 @@ class Music(commands.Cog):
                 print('Error downloading song. Skipping.')
                 return
         
-        voice.play(discord.FFmpegPCMAudio(f"./audio/{guild.id}.mp3"))
+        voice.play(discord.FFmpegPCMAudio(audio_path))
         queue.clear_skip_votes()
 
     async def wait_for_end_of_song(self, voice: List[discord.VoiceClient]):
