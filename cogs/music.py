@@ -103,9 +103,11 @@ class Music(commands.Cog):
         if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
+
         if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
+
         if ctx.author in queue.skip_voters:
             await ctx.send("You've already voted to skip this song.")
             return
@@ -132,6 +134,7 @@ class Music(commands.Cog):
         if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
+
         if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
