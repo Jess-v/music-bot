@@ -74,6 +74,7 @@ class Music(commands.Cog):
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
+        await self.play_all_songs()
         if not voice.is_playing():
             await self.play_song(voice, ctx.guild, music_queue.next_song())
 
@@ -244,6 +245,16 @@ class Music(commands.Cog):
         to_send += '\n```'
         await ctx.send(to_send)
 
+    async def play_all_songs(self, voice: List[discord.VoiceClient], guild: discord.Guild):
+        # Play next song until queue is empty
+        while len(queue) > 0:
+            song = queue.next_song()
+            await self.play_song(voice, guild, song)
+            await self.wait_for_end_of_song(voice)
+
+        # Disconnect after song queue is empty
+        await self.inactivity_disconnect(voice, guild)
+
     async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
 
@@ -276,21 +287,12 @@ class Music(commands.Cog):
         
         voice.play(discord.FFmpegPCMAudio(f"./audio/{guild.id}.mp3"))
         queue.clear_skip_votes()
-        await self.process_queue(voice, guild)
 
-    async def process_queue(self, voice: List[discord.VoiceClient], guild: discord.Guild):
-        '''Continuously checks for the opportunity to play the next video.'''
-
+    async def wait_for_end_of_song(self, voice: List[discord.VoiceClient]):
         queue = self.music_queues.get(guild)
 
         while voice.is_playing():
             await asyncio.sleep(1)
-
-        if len(queue) > 0:
-            song = queue.next_song()
-            await self.play_song(voice, guild, song)
-        else:
-            await self.inactivity_disconnect(voice, guild)
 
     async def inactivity_disconnect(self, voice: List[discord.VoiceClient], guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
