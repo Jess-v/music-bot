@@ -9,8 +9,8 @@ from discord.utils import get
 from typing import List
 
 
-# 2 minutes, in tenths of a second
-DURATION_CEILING = 2 * 60 * 10
+# 20 minutes, in seconds
+DURATION_CEILING = 20 * 60
 
 SONGS_PER_PAGE = 10
 
