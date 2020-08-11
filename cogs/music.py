@@ -9,7 +9,29 @@ from discord.utils import get
 from typing import List
 
 
-class Music(commands.Cog): 
+# 2 minutes, in tenths of a second
+DURATION_CEILING = 2 * 60 * 10
+
+SONGS_PER_PAGE = 10
+
+
+def set_str_len(s: str, lower_limit: int = None, upper_limit: int = None):
+    '''Pad string if shorter than lower_limit and/or trim string if longer than upper_limit'''
+
+    assert lower_limit <= upper_limit, f'set_str_len bounds invalid: attempted range {lower_limit} <= {upper_limit}'
+
+    # Extend
+    if lower_limit is not None:
+        s = f'{s:<{lower_limit}}'
+
+    # Strip
+    if upper_limit is not None:
+        s = s[:upper_limit]
+
+    return s
+
+
+class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.music_queues = {}
@@ -35,8 +57,8 @@ class Music(commands.Cog):
             await ctx.send("You're not in my voice channel.")
             return
 
-        if 'https://' not in url:
-            url = 'ytsearch1:' + url + ' ' + f'{" ".join(args)}'
+        if not url.startswith('https://'):
+            url = f'ytsearch1:{url} {" ".join(args)}'
 
         song = Song(url, ctx.author)
         valid_song, song_err = self.song_error_check(song)
@@ -52,6 +74,7 @@ class Music(commands.Cog):
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
+        await self.play_all_songs()
         if not voice.is_playing():
             await self.play_song(voice, ctx.guild, music_queue.next_song())
 
@@ -81,9 +104,11 @@ class Music(commands.Cog):
         if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
+
         if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
+
         if ctx.author in queue.skip_voters:
             await ctx.send("You've already voted to skip this song.")
             return
@@ -97,10 +122,8 @@ class Music(commands.Cog):
         if len(voters) >= required_votes:
             await ctx.send('Skipping song after successful vote.')
             voice.stop()
-            return
         else:
             await ctx.send(f'You voted to skip this song. {required_votes-len(voters)} more votes are required.')
-            return
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
@@ -112,6 +135,7 @@ class Music(commands.Cog):
         if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
             return
+
         if voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
             return
@@ -125,7 +149,7 @@ class Music(commands.Cog):
 
         queue = self.music_queues.get(ctx.guild)
 
-        if song_index < 0 or song_index > (len(queue)) and song_index != 0:
+        if song_index not in range(len(queue)):
             await ctx.send("A song does not exist at that index in the queue.")
             return
         
@@ -204,45 +228,38 @@ class Music(commands.Cog):
 
         to_send = '```\n    Song                                                              Uploader              '\
                   '              Requested By               '
-        start_index = (page-1)*10
+        start_index = (page-1) * SONGS_PER_PAGE
+        end_index = min(start_index + SONGS_PER_PAGE, len(queue))
 
-        for index in range(start_index, start_index+10):
-            try:
-                song = queue[index]
-            except:
-                break
-            
-            if song is not None:
-                queue_pos = str(index+1) + ')'
-                title = song.title
-                uploader = song.uploader
-                requested_by = song.requested_by_username
+        for index in range(start_index, end_index):
+            song = queue[index]
 
-                while len(queue_pos) < 4:
-                    queue_pos = queue_pos + ' '
+            queue_pos = set_str_len(f'{index + 1})', lower_limit=4)
+            title = set_str_len(song.title, lower_limit=65, upper_limit=65)
+            uploader = set_str_len(song.uploader, lower_limit=35, upper_limit=35)
 
-                if len(title) < 65:
-                    while len(title) < 65:
-                        title = title + ' '
-                else:
-                    title = title[:65]
+            requested_by = song.requested_by_username
 
-                if len(uploader) < 35:
-                    while len(uploader) < 35:
-                        uploader = uploader + ' '
-                else:
-                    uploader = uploader[:35]
-                
-                to_send = to_send + f'\n{queue_pos}{title}|{uploader}|{requested_by}'
+            to_send += f'\n{queue_pos}{title}|{uploader}|{requested_by}'
 
-            else:
-                break
-
-        to_send = to_send + '\n```'
+        to_send += '\n```'
         await ctx.send(to_send)
+
+    async def play_all_songs(self, voice: List[discord.VoiceClient], guild: discord.Guild):
+        # Play next song until queue is empty
+        while len(queue) > 0:
+            song = queue.next_song()
+            await self.play_song(voice, guild, song)
+            await self.wait_for_end_of_song(voice)
+
+        # Disconnect after song queue is empty
+        await self.inactivity_disconnect(voice, guild)
 
     async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
+
+        audio_dir = os.path.join('.', 'audio')
+        audio_path = os.path.join(audio_dir, f'{guild.id}.mp3')
 
         queue = self.music_queues.get(guild)
         ydl_opts = {
@@ -253,15 +270,15 @@ class Music(commands.Cog):
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'outtmpl': f'./audio/{guild.id}.mp3',
+            'outtmpl': audio_path
         }
 
-        if not os.path.exists('./audio'):
-            os.makedirs('./audio')
-        song_there = os.path.isfile(f"./audio/{guild.id}.mp3")
+        if not os.path.exists(audio_dir):
+            os.makedirs(audio_dir)
+        song_there = os.path.isfile(audio_path)
 
         if song_there:
-            os.remove(f'./audio/{guild.id}.mp3')
+            os.remove(audio_path)
         
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
@@ -271,23 +288,14 @@ class Music(commands.Cog):
                 print('Error downloading song. Skipping.')
                 return
         
-        voice.play(discord.FFmpegPCMAudio(f"./audio/{guild.id}.mp3"))
+        voice.play(discord.FFmpegPCMAudio(audio_path))
         queue.clear_skip_votes()
-        await self.process_queue(voice, guild)
 
-    async def process_queue(self, voice: List[discord.VoiceClient], guild: discord.Guild):
-        '''Continuously checks for the opportunity to play the next video.'''
-
+    async def wait_for_end_of_song(self, voice: List[discord.VoiceClient]):
         queue = self.music_queues.get(guild)
 
         while voice.is_playing():
             await asyncio.sleep(1)
-
-        if len(queue) > 0:
-            song = queue.next_song()
-            await self.play_song(voice, guild, song)
-        else:
-            await self.inactivity_disconnect(voice, guild)
 
     async def inactivity_disconnect(self, voice: List[discord.VoiceClient], guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
@@ -308,10 +316,7 @@ class Music(commands.Cog):
         except:
             return False
         
-        if voice is not None and voice.is_connected() and channel == voice.channel:
-            return True
-        else:
-            return False
+        return voice is not None and voice.is_connected() and channel == voice.channel:
 
     @staticmethod
     def song_error_check(song: Song):
@@ -322,8 +327,8 @@ class Music(commands.Cog):
         
         if song.get("is_live", True):
             return False, "Invalid video - either live stream or unsupported website."
-        
-        if song.duration_raw > 1200:
+
+        if song.duration_raw > DURATION_CEILING:
             return False, "Video is too long. Keep it under 20mins."
         
         return True, None

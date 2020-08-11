@@ -10,12 +10,12 @@ class Queue(list):
         self._skip_voters = []
 
     def next_song(self):
-        song = self.pop(0)
-        self._current_song = song
-        return song
+        self._current_song = self.pop(0)
+
+        return self._current_song
 
     def clear(self):
-        super(Queue, self).clear()
+        super().clear()
         self._current_song = None
 
     def add_skip_vote(self, voter: discord.Member):
@@ -100,7 +100,8 @@ class Song(dict):
 
     @property
     def upload_date_formatted(self):
-        return f'{self.upload_date_raw[4:6]}/{self.upload_date_raw[6:8]}/{self.upload_date_raw[0:4]}'
+        m, d, y = self.upload_date_raw[4:6], self.upload_date_raw[6:8], self.upload_date_raw[0:4]
+        return f'{m}/{d}/{y}'
 
     @property
     def views(self):
@@ -120,7 +121,7 @@ class Song(dict):
 
     @property
     def requested_by_username(self):
-        return self.get('requested_by', 'foo')
+        return self.get('requested_by', 'Unknown requester')
 
     @property
     def requested_by_id(self):
@@ -130,7 +131,7 @@ class Song(dict):
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
             self.update(ydl.extract_info(url, download=False))
 
-            if 'https' not in url:
+            if not url.startswith('https'):
                 self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
 
             self["url"] = url
