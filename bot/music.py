@@ -39,7 +39,7 @@ class Queue(list):
             song = self[song_id-1]
 
         if len(song.description) > 300:
-            song['description'] = f'{song.description[0:300]}...'
+            song['description'] = f'{song.description[:300]}...'
 
         embed = discord.Embed(title="Audio Info")
         embed.set_thumbnail(url=song.thumbnail)
@@ -52,10 +52,12 @@ class Queue(list):
         embed.add_field(name='Likes', value=song.likes, inline=True)
         embed.add_field(name='Dislikes', value=song.dislikes, inline=True)
         embed.add_field(name='Requested By', value=song.requested_by_username, inline=True)
+
         return embed
 
 
 class Song(dict):
+
     ydl_opts = {
         'format': 'bestaudio/best',
         'noplaylist': True,
@@ -135,6 +137,6 @@ class Song(dict):
             if not url.startswith('https'):
                 self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
 
-            self["url"] = url
-            self["requested_by"] = str(author.name)
-            self["requested_by_id"] = author.id
+            self['url'] = url
+            self['requested_by'] = str(author.name)
+            self['requested_by_id'] = author.id

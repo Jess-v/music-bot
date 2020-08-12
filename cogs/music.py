@@ -6,11 +6,14 @@ import youtube_dl
 from discord import FFmpegPCMAudio
 from discord.ext import commands
 from discord.utils import get
+from pathlib import Path
 
 from bot.music import Queue, Song
 
 # 20 minutes, in seconds
 DURATION_CEILING = 20 * 60
+
+DURATION_CEILING_STRING = '20mins'
 
 SONGS_PER_PAGE = 10
 
@@ -32,16 +35,18 @@ def set_str_len(s: str, lower_limit: int = None, upper_limit: int = None):
 
 
 class Music(commands.Cog):
+
     def __init__(self, bot):
         self.bot = bot
         self.music_queues = {}
+        self.voice_clients = {}
 
     @commands.command()
-    async def play(self, ctx: discord.ext.commands.Context, url: str, *args: str):
+    async def play(self, ctx: commands.Context, url: str, *args: str):
         '''Adds a song to the queue either by YouTube URL or YouTube Search.'''
 
         music_queue = self.music_queues.get(ctx.guild, None)
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        voice = self.voice_clients.get(ctx.guild)
 
         if music_queue is None:
             music_queue = Queue()
@@ -53,7 +58,7 @@ class Music(commands.Cog):
             await ctx.send("You're not connected to a voice channel.")
             return
 
-        if voice is not None and not self.client_in_same_channel(ctx.message.author, voice):
+        if voice is not None and not self.client_in_same_channel(ctx.message.author, ctx.guild):
             await ctx.send("You're not in my voice channel.")
             return
 
@@ -68,39 +73,40 @@ class Music(commands.Cog):
             return
 
         if voice is None or not voice.is_connected():
-            voice = channel.connect()
+            self.voice_clients[ctx.guild] = channel.connect()
 
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
-        await self.play_all_songs(voice, ctx.guild)
+        await self.play_all_songs(ctx.guild)
         if not voice.is_playing():
-            await self.play_song(voice, ctx.guild, music_queue.next_song())
+            await self.play_song(ctx.guild, music_queue.next_song())
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def stop(self, ctx: discord.ext.commands.Context):
+    async def stop(self, ctx: commands.Context):
         '''Admin command that stops playback of music and clears out the music queue.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        voice = self.voice_clients.get(ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
-        if self.client_in_same_channel(ctx.message.author, voice):
+        if self.client_in_same_channel(ctx.message.author, ctx.guild):
             voice.stop()
             queue.clear()
+            self.voice_clients[ctx.guild] = None
             await ctx.send("Stopping playback")
             await voice.disconnect()
         else:
             await ctx.send("You're not in a voice channel with me.")
 
     @commands.command()
-    async def skip(self, ctx: discord.ext.commands.Context):
+    async def skip(self, ctx: commands.Context):
         '''Puts in your vote to skip the currently played song.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        voice = self.voice_clients.get(ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
-        if not self.client_in_same_channel(ctx.message.author, voice):
+        if not self.client_in_same_channel(ctx.message.author, ctx.guild):
             await ctx.send("You're not in a voice channel with me.")
             return
 
@@ -113,37 +119,32 @@ class Music(commands.Cog):
             return
 
         channel = ctx.message.author.voice.channel
-        required_votes = round(len(channel.members)/2)
+        required_votes = round(len(channel.members) / 2)
 
         queue.add_skip_vote(ctx.author.name)
-        voters = queue.skip_voters
 
-        if len(voters) >= required_votes:
+        if len(queue.skip_voters) >= required_votes:
             await ctx.send('Skipping song after successful vote.')
             voice.stop()
         else:
-            await ctx.send(f'You voted to skip this song. {required_votes-len(voters)} more votes are required.')
+            await ctx.send(f'You voted to skip this song. {required_votes-len(queue.skip_voters)} more votes are required.')
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def fskip(self, ctx: discord.ext.commands.Context):
+    async def fskip(self, ctx: commands.Context):
         '''Admin command that forces skipping of the currently playing song.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
+        voice = self.voice_clients.get(ctx.guild)
 
-        if not self.client_in_same_channel(ctx.message.author, voice):
+        if not self.client_in_same_channel(ctx.message.author, ctx.guild):
             await ctx.send("You're not in a voice channel with me.")
-            return
-
-        if voice is None or not voice.is_playing():
+        elif voice is None or not voice.is_playing():
             await ctx.send("I'm not playing a song right now.")
-            return
-
-        voice.stop()
-        return
+        else:
+            voice.stop()
 
     @commands.command()
-    async def songinfo(self, ctx: discord.ext.commands.Context, song_index: int = 0):
+    async def songinfo(self, ctx: commands.Context, song_index: int = 0):
         '''Print out more information on the song currently playing.'''
 
         queue = self.music_queues.get(ctx.guild)
@@ -156,16 +157,14 @@ class Music(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    async def remove(self, ctx: discord.ext.commands.Context, song_id: int = 0):
+    async def remove(self, ctx: commands.Context, song_id: int = None):
         '''Removes the last song you requested from the queue, or a specific song if queue position specified.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
-
-        if not self.client_in_same_channel(ctx.message.author, voice):
+        if not self.client_in_same_channel(ctx.message.author, ctx.guild):
             await ctx.send("You're not in a voice channel with me.")
             return
 
-        if song_id == 0:
+        if song_id is None or 0:
             queue = self.music_queues.get(ctx.guild)
 
             for index, song in reversed(list(enumerate(queue))):
@@ -185,48 +184,45 @@ class Music(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def fremove(self, ctx: discord.ext.commands.Context, song_id: int = 0):
+    async def fremove(self, ctx: commands.Context, song_id: int = None):
         '''Admin command to forcibly remove a song from the queue by it's position.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
-        if not self.client_in_same_channel(ctx.message.author, voice):
-            await ctx.send("You're not in a voice channel with me.")
+        if not self.client_in_same_channel(ctx.message.author, ctx.guild):
+            await ctx.send('You\'re not in a voice channel with me.')
             return
         
-        if song_id == 0:
-            await ctx.send("You need to specify a song by it's queue index.")
+        if song_id is None or 0:
+            await ctx.send('You need to specify a song by it\'s queue index.')
             return
         
         try:
             song = queue[song_id-1]
-            song_title = song.title
-        except:
-            await ctx.send("A song does not exist at this queue index.")
+        except IndexError:
+            await ctx.send('A song does not exist at this queue index.')
             return
         
-        queue.pop[song_id-1]
-        await ctx.send(f"Removed {song_title} from the queue.")
+        queue.pop(song_id-1)
+        await ctx.send(f'Removed {song.title} from the queue.')
         return
 
     @commands.command()
-    async def queue(self, ctx: discord.ext.commands.Context, page: int = 1):
+    async def queue(self, ctx: commands.Context, page: int = 1):
         '''Prints out a specified page of the music queue, defaults to first page.'''
 
-        voice = get(self.bot.voice_clients, guild=ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
-        if not self.client_in_same_channel(ctx.message.author, voice):
-            await ctx.send("You're not in a voice channel with me.")
+        if not self.client_in_same_channel(ctx.message.author, ctx.guild):
+            await ctx.send('You\'re not in a voice channel with me.')
             return
         
-        if len(queue) < 1:
-            await ctx.send("I don't have anything in my queue right now.")
+        if not queue:
+            await ctx.send('I don\'t have anything in my queue right now.')
             return
 
         to_send = '```\n    Song                                                              Uploader              '\
-                  '              Requested By               '
+                  '              Requested By               \n'
         start_index = (page-1) * SONGS_PER_PAGE
         end_index = min(start_index + SONGS_PER_PAGE, len(queue))
 
@@ -239,27 +235,28 @@ class Music(commands.Cog):
 
             requested_by = song.requested_by_username
 
-            to_send += f'\n{queue_pos}{title}|{uploader}|{requested_by}'
+            to_send += f'{queue_pos}{title}|{uploader}|{requested_by}\n'
 
-        to_send += '\n```'
         await ctx.send(to_send)
 
-    async def play_all_songs(self, voice: discord.VoiceClient, guild: discord.Guild):
+    async def play_all_songs(self, guild: discord.Guild):
         queue = self.music_queues.get(guild)
+
         # Play next song until queue is empty
         while len(queue) > 0:
             song = queue.next_song()
-            await self.play_song(voice, guild, song)
-            await self.wait_for_end_of_song(voice)
+            await self.play_song(guild, song)
+            await self.wait_for_end_of_song(guild)
 
         # Disconnect after song queue is empty
-        await self.inactivity_disconnect(voice, guild)
+        await self.inactivity_disconnect(guild)
 
-    async def play_song(self, voice: discord.VoiceClient, guild: discord.Guild, song: Song):
+    async def play_song(self, guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
 
         audio_dir = os.path.join('.', 'audio')
         audio_path = os.path.join(audio_dir, f'{guild.id}.mp3')
+        voice = self.voice_clients.get(guild)
 
         queue = self.music_queues.get(guild)
         ydl_opts = {
@@ -273,32 +270,33 @@ class Music(commands.Cog):
             'outtmpl': audio_path
         }
 
-        if not os.path.exists(audio_dir):
-            os.makedirs(audio_dir)
-        song_there = os.path.isfile(audio_path)
+        Path(audio_dir).mkdir(parents=True, exist_ok=True)
 
-        if song_there:
+        try:
             os.remove(audio_path)
+        except OSError:
+            pass
         
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             try:
                 ydl.download([f'{song.url}'])
             except:
-                await self.play_all_songs(voice, guild)
+                await self.play_all_songs(guild)
                 print('Error downloading song. Skipping.')
                 return
         
         voice.play(discord.FFmpegPCMAudio(audio_path))
         queue.clear_skip_votes()
 
-    @staticmethod
-    async def wait_for_end_of_song(voice: discord.VoiceClient):
+    async def wait_for_end_of_song(self, guild: discord.Guild):
+        voice = self.voice_clients.get(guild)
         while voice.is_playing():
             await asyncio.sleep(1)
 
-    async def inactivity_disconnect(self, voice: discord.VoiceClient, guild: discord.Guild):
+    async def inactivity_disconnect(self, guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
+        voice = self.voice_clients.get(guild)
         queue = self.music_queues.get(guild)
         last_song = queue.current_song
 
@@ -306,13 +304,14 @@ class Music(commands.Cog):
         if queue.current_song == last_song:
             await voice.disconnect()
 
-    @staticmethod
-    def client_in_same_channel(author: discord.Member, voice: discord.VoiceClient):
+    def client_in_same_channel(self, author: discord.Member, guild: discord.Guild):
         '''Checks to see if a client is in the same channel as the bot.'''
+
+        voice = self.voice_clients.get(guild)
 
         try:
             channel = author.voice.channel
-        except:
+        except AttributeError:
             return False
         
         return voice is not None and voice.is_connected() and channel == voice.channel
@@ -322,13 +321,13 @@ class Music(commands.Cog):
         ''' Checks song properties to ensure that the song is both valid and doesn't match any filtered properties'''
 
         if song.url is None:
-            return False, "Invalid URL provided or no video found."
+            return False, 'Invalid URL provided or no video found.'
         
-        if song.get("is_live", True):
-            return False, "Invalid video - either live stream or unsupported website."
+        if song.get('is_live', True):
+            return False, 'Invalid video - either live stream or unsupported website.'
 
         if song.duration_raw > DURATION_CEILING:
-            return False, "Video is too long. Keep it under 20mins."
+            return False, f'Video is too long. Keep it under {DURATION_CEILING_STRING}.'
         
         return True, None
 
