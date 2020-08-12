@@ -3,9 +3,7 @@ import os
 
 import discord
 import youtube_dl
-from discord import FFmpegPCMAudio
 from discord.ext import commands
-from discord.utils import get
 from pathlib import Path
 
 from bot.music import Queue, Song
