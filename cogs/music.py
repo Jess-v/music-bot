@@ -1,13 +1,13 @@
 import asyncio
-import discord
 import os
+
+import discord
 import youtube_dl
-from bot.music import Queue, Song
 from discord import FFmpegPCMAudio
 from discord.ext import commands
 from discord.utils import get
-from typing import List
 
+from bot.music import Queue, Song
 
 # 20 minutes, in seconds
 DURATION_CEILING = 20 * 60
@@ -68,13 +68,12 @@ class Music(commands.Cog):
             return
 
         if voice is None or not voice.is_connected():
-            await channel.connect()
-            voice = get(self.bot.voice_clients, guild=ctx.guild)
+            voice = channel.connect()
 
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
-        await self.play_all_songs()
+        await self.play_all_songs(voice, ctx.guild)
         if not voice.is_playing():
             await self.play_song(voice, ctx.guild, music_queue.next_song())
 
@@ -190,7 +189,7 @@ class Music(commands.Cog):
         '''Admin command to forcibly remove a song from the queue by it's position.'''
 
         voice = get(self.bot.voice_clients, guild=ctx.guild)
-        queue = self.music_queues.get(guild=ctx.guild)
+        queue = self.music_queues.get(ctx.guild)
 
         if not self.client_in_same_channel(ctx.message.author, voice):
             await ctx.send("You're not in a voice channel with me.")
@@ -245,7 +244,8 @@ class Music(commands.Cog):
         to_send += '\n```'
         await ctx.send(to_send)
 
-    async def play_all_songs(self, voice: List[discord.VoiceClient], guild: discord.Guild):
+    async def play_all_songs(self, voice: discord.VoiceClient, guild: discord.Guild):
+        queue = self.music_queues.get(guild)
         # Play next song until queue is empty
         while len(queue) > 0:
             song = queue.next_song()
@@ -255,7 +255,7 @@ class Music(commands.Cog):
         # Disconnect after song queue is empty
         await self.inactivity_disconnect(voice, guild)
 
-    async def play_song(self, voice: List[discord.VoiceClient], guild: discord.Guild, song: Song):
+    async def play_song(self, voice: discord.VoiceClient, guild: discord.Guild, song: Song):
         '''Downloads and starts playing a YouTube video's audio.'''
 
         audio_dir = os.path.join('.', 'audio')
@@ -284,20 +284,19 @@ class Music(commands.Cog):
             try:
                 ydl.download([f'{song.url}'])
             except:
-                await self.process_queue(voice, guild)
+                await self.play_all_songs(voice, guild)
                 print('Error downloading song. Skipping.')
                 return
         
         voice.play(discord.FFmpegPCMAudio(audio_path))
         queue.clear_skip_votes()
 
-    async def wait_for_end_of_song(self, voice: List[discord.VoiceClient]):
-        queue = self.music_queues.get(guild)
-
+    @staticmethod
+    async def wait_for_end_of_song(voice: discord.VoiceClient):
         while voice.is_playing():
             await asyncio.sleep(1)
 
-    async def inactivity_disconnect(self, voice: List[discord.VoiceClient], guild: discord.Guild):
+    async def inactivity_disconnect(self, voice: discord.VoiceClient, guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
         queue = self.music_queues.get(guild)
@@ -308,7 +307,7 @@ class Music(commands.Cog):
             await voice.disconnect()
 
     @staticmethod
-    def client_in_same_channel(author: discord.Member, voice: List[discord.VoiceClient]):
+    def client_in_same_channel(author: discord.Member, voice: discord.VoiceClient):
         '''Checks to see if a client is in the same channel as the bot.'''
 
         try:
@@ -316,7 +315,7 @@ class Music(commands.Cog):
         except:
             return False
         
-        return voice is not None and voice.is_connected() and channel == voice.channel:
+        return voice is not None and voice.is_connected() and channel == voice.channel
 
     @staticmethod
     def song_error_check(song: Song):

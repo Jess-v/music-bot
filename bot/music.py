@@ -67,6 +67,7 @@ class Song(dict):
     }
 
     def __init__(self, url: str, author: discord.Member):
+        super().__init__()
         self.download_info(url, author)
 
     @property
