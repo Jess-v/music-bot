@@ -16,10 +16,10 @@ DURATION_CEILING_STRING = '20mins'
 SONGS_PER_PAGE = 10
 
 
-def set_str_len(s: str, len: int):
+def set_str_len(s: str, length: int):
     '''Adds whitespace or trims string to enforce a specific size'''
 
-    return s.ljust(len)[:len]
+    return s.ljust(length)[:length]
 
 
 class Music(commands.Cog):
@@ -207,20 +207,17 @@ class Music(commands.Cog):
             await ctx.send('I don\'t have anything in my queue right now.')
             return
 
+        if len(queue) < SONGS_PER_PAGE*(page-1):
+            await ctx.send('I don\'t have that many pages in my queue.')
+            return
+
         to_send = f'```\n    {set_str_len("Song", 66)}{set_str_len("Uploader", 36)}Requested By\n'
-        start_index = (page-1) * SONGS_PER_PAGE
-        end_index = min(start_index + SONGS_PER_PAGE, len(queue))
 
-        for index in range(start_index, end_index):
-            song = queue[index]
-
-            queue_pos = set_str_len(f'{index + 1})', 4)
+        for pos, song in enumerate(queue[:SONGS_PER_PAGE*page], start=SONGS_PER_PAGE*(page-1)):
             title = set_str_len(song.title, 65)
             uploader = set_str_len(song.uploader, 35)
-
             requested_by = song.requested_by_username
-
-            to_send += f'{queue_pos}{title}|{uploader}|{requested_by}\n'
+            to_send += f'{set_str_len(f"{pos+1})",4)}{title}|{uploader}|{requested_by}\n'
 
         await ctx.send(to_send + '```')
 
