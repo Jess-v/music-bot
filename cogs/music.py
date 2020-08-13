@@ -107,7 +107,7 @@ class Music(commands.Cog):
         channel = ctx.message.author.voice.channel
         required_votes = round(len(channel.members) / 2)
 
-        queue.add_skip_vote(ctx.author.name)
+        queue.add_skip_vote(ctx.author)
 
         if len(queue.skip_voters) >= required_votes:
             await ctx.send('Skipping song after successful vote.')
@@ -150,7 +150,7 @@ class Music(commands.Cog):
             await ctx.send("You're not in a voice channel with me.")
             return
 
-        if song_id is None or 0:
+        if song_id is None:
             queue = self.music_queues.get(ctx.guild)
 
             for index, song in reversed(list(enumerate(queue))):
@@ -160,7 +160,12 @@ class Music(commands.Cog):
                     return
         else:
             queue = self.music_queues.get(ctx.guild)
-            song = queue[song_id-1]
+
+            try:
+                song = queue[song_id-1]
+            except IndexError:
+                await ctx.send('An invalid index was provided.')
+                return
 
             if ctx.author.id == song.requested_by_id:
                 queue.pop(song_id-1)
