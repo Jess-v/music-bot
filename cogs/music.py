@@ -16,20 +16,10 @@ DURATION_CEILING_STRING = '20mins'
 SONGS_PER_PAGE = 10
 
 
-def set_str_len(s: str, lower_limit: int = None, upper_limit: int = None):
-    '''Pad string if shorter than lower_limit and/or trim string if longer than upper_limit'''
+def set_str_len(s: str, len: int):
+    '''Adds whitespace or trims string to enforce a specific size'''
 
-    assert lower_limit <= upper_limit, f'set_str_len bounds invalid: attempted range {lower_limit} <= {upper_limit}'
-
-    # Extend
-    if lower_limit is not None:
-        s = f'{s:<{lower_limit}}'
-
-    # Strip
-    if upper_limit is not None:
-        s = s[:upper_limit]
-
-    return s
+    return s.ljust(len)[:len]
 
 
 class Music(commands.Cog):
@@ -71,14 +61,12 @@ class Music(commands.Cog):
             return
 
         if voice is None or not voice.is_connected():
-            self.voice_clients[ctx.guild] = channel.connect()
+            self.voice_clients[ctx.guild] = await channel.connect()
 
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
         await self.play_all_songs(ctx.guild)
-        if not voice.is_playing():
-            await self.play_song(ctx.guild, music_queue.next_song())
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
@@ -147,7 +135,7 @@ class Music(commands.Cog):
 
         queue = self.music_queues.get(ctx.guild)
 
-        if song_index not in range(len(queue)):
+        if song_index not in range(len(queue)+1):
             await ctx.send("A song does not exist at that index in the queue.")
             return
         
@@ -215,36 +203,37 @@ class Music(commands.Cog):
             await ctx.send('You\'re not in a voice channel with me.')
             return
         
-        if not queue:
+        if not len(queue):
             await ctx.send('I don\'t have anything in my queue right now.')
             return
 
-        to_send = '```\n    Song                                                              Uploader              '\
-                  '              Requested By               \n'
+        to_send = f'```\n    {set_str_len("Song", 66)}{set_str_len("Uploader", 36)}Requested By\n'
         start_index = (page-1) * SONGS_PER_PAGE
         end_index = min(start_index + SONGS_PER_PAGE, len(queue))
 
         for index in range(start_index, end_index):
             song = queue[index]
 
-            queue_pos = set_str_len(f'{index + 1})', lower_limit=4)
-            title = set_str_len(song.title, lower_limit=65, upper_limit=65)
-            uploader = set_str_len(song.uploader, lower_limit=35, upper_limit=35)
+            queue_pos = set_str_len(f'{index + 1})', 4)
+            title = set_str_len(song.title, 65)
+            uploader = set_str_len(song.uploader, 35)
 
             requested_by = song.requested_by_username
 
             to_send += f'{queue_pos}{title}|{uploader}|{requested_by}\n'
 
-        await ctx.send(to_send)
+        await ctx.send(to_send + '```')
 
     async def play_all_songs(self, guild: discord.Guild):
         queue = self.music_queues.get(guild)
 
         # Play next song until queue is empty
         while len(queue) > 0:
-            song = queue.next_song()
-            await self.play_song(guild, song)
             await self.wait_for_end_of_song(guild)
+
+            song = queue.next_song()
+
+            await self.play_song(guild, song)
 
         # Disconnect after song queue is empty
         await self.inactivity_disconnect(guild)
