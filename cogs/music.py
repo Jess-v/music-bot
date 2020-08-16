@@ -39,11 +39,11 @@ class Music(commands.Cog):
         try:
             channel = ctx.message.author.voice.channel
         except:
-            await ctx.send("You're not connected to a voice channel.")
+            await ctx.send('You\'re not connected to a voice channel.')
             return
 
         if voice is not None and not self.client_in_same_channel(ctx.message.author, ctx.guild):
-            await ctx.send("You're not in my voice channel.")
+            await ctx.send('You\'re not in my voice channel.')
             return
 
         if not url.startswith('https://'):
@@ -75,10 +75,10 @@ class Music(commands.Cog):
             voice.stop()
             queue.clear()
             self.voice_clients[ctx.guild] = None
-            await ctx.send("Stopping playback")
+            await ctx.send('Stopping playback')
             await voice.disconnect()
         else:
-            await ctx.send("You're not in a voice channel with me.")
+            await ctx.send('You\'re not in a voice channel with me.')
 
     @commands.command()
     async def skip(self, ctx: commands.Context):
@@ -88,15 +88,15 @@ class Music(commands.Cog):
         queue = self.music_queues.get(ctx.guild)
 
         if not self.client_in_same_channel(ctx.message.author, ctx.guild):
-            await ctx.send("You're not in a voice channel with me.")
+            await ctx.send('You\'re not in a voice channel with me.')
             return
 
         if voice is None or not voice.is_playing():
-            await ctx.send("I'm not playing a song right now.")
+            await ctx.send('I\'m not playing a song right now.')
             return
 
         if ctx.author in queue.skip_voters:
-            await ctx.send("You've already voted to skip this song.")
+            await ctx.send('You\'ve already voted to skip this song.')
             return
 
         channel = ctx.message.author.voice.channel
@@ -118,9 +118,9 @@ class Music(commands.Cog):
         voice = self.voice_clients.get(ctx.guild)
 
         if not self.client_in_same_channel(ctx.message.author, ctx.guild):
-            await ctx.send("You're not in a voice channel with me.")
+            await ctx.send('You\'re not in a voice channel with me.')
         elif voice is None or not voice.is_playing():
-            await ctx.send("I'm not playing a song right now.")
+            await ctx.send('I\'m not playing a song right now.')
         else:
             voice.stop()
 
@@ -131,7 +131,7 @@ class Music(commands.Cog):
         queue = self.music_queues.get(ctx.guild)
 
         if song_index not in range(len(queue)+1):
-            await ctx.send("A song does not exist at that index in the queue.")
+            await ctx.send('A song does not exist at that index in the queue.')
             return
         
         embed = queue.get_embed(song_index)
@@ -142,7 +142,7 @@ class Music(commands.Cog):
         '''Removes the last song you requested from the queue, or a specific song if queue position specified.'''
 
         if not self.client_in_same_channel(ctx.message.author, ctx.guild):
-            await ctx.send("You're not in a voice channel with me.")
+            await ctx.send('You\'re not in a voice channel with me.')
             return
 
         if song_id is None:
