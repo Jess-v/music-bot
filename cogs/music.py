@@ -60,7 +60,8 @@ class Music(commands.Cog):
 
         if voice is None or not voice.is_connected():
             self.voice_clients[ctx.guild] = await channel.connect()
-            await self.play_all_songs(ctx.guild)
+
+        await self.play_all_songs(ctx.guild)
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
@@ -225,7 +226,7 @@ class Music(commands.Cog):
         voice = self.voice_clients.get(guild)
 
         # Play next song until queue is empty
-        while queue or voice.is_playing():
+        while queue:
             await self.wait_for_end_of_song(guild)
 
             song = queue.next_song()
