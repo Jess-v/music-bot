@@ -6,12 +6,8 @@ import youtube_dl
 from discord.ext import commands
 from pathlib import Path
 
-from bot.music import Queue, Song
+from bot.music import Queue, Song, SongRequestError
 
-# 20 minutes, in seconds
-DURATION_CEILING = 20 * 60
-
-DURATION_CEILING_STRING = '20mins'
 
 SONGS_PER_PAGE = 10
 
@@ -53,20 +49,18 @@ class Music(commands.Cog):
         if not url.startswith('https://'):
             url = f'ytsearch1:{url} {" ".join(args)}'
 
-        song = Song(url, ctx.author)
-        valid_song, song_err = self.song_error_check(song)
-
-        if not valid_song:
-            await ctx.send(song_err)
+        try:
+            song = Song(url, ctx.author)
+        except SongRequestError as e:
+            await ctx.send(e.args[0])
             return
-
-        if voice is None or not voice.is_connected():
-            self.voice_clients[ctx.guild] = await channel.connect()
 
         music_queue.append(song)
         await ctx.send(f'Queued song: {song.title}')
 
-        await self.play_all_songs(ctx.guild)
+        if voice is None or not voice.is_connected():
+            self.voice_clients[ctx.guild] = await channel.connect()
+            await self.play_all_songs(ctx.guild)
 
     @commands.command()
     @commands.has_permissions(ban_members=True)
@@ -208,7 +202,7 @@ class Music(commands.Cog):
             await ctx.send('You\'re not in a voice channel with me.')
             return
         
-        if not len(queue):
+        if not queue:
             await ctx.send('I don\'t have anything in my queue right now.')
             return
 
@@ -230,7 +224,7 @@ class Music(commands.Cog):
         queue = self.music_queues.get(guild)
 
         # Play next song until queue is empty
-        while len(queue) > 0:
+        while queue:
             await self.wait_for_end_of_song(guild)
 
             song = queue.next_song()
@@ -304,21 +298,6 @@ class Music(commands.Cog):
             return False
         
         return voice is not None and voice.is_connected() and channel == voice.channel
-
-    @staticmethod
-    def song_error_check(song: Song):
-        ''' Checks song properties to ensure that the song is both valid and doesn't match any filtered properties'''
-
-        if song.url is None:
-            return False, 'Invalid URL provided or no video found.'
-        
-        if song.get('is_live', True):
-            return False, 'Invalid video - either live stream or unsupported website.'
-
-        if song.duration_raw > DURATION_CEILING:
-            return False, f'Video is too long. Keep it under {DURATION_CEILING_STRING}.'
-        
-        return True, None
 
 
 def setup(bot):

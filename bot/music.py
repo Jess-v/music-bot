@@ -1,6 +1,10 @@
 import discord
 import youtube_dl
 
+DURATION_CEILING = 20 * 60
+
+DURATION_CEILING_STRING = '20mins'
+
 
 class Queue(list):
 
@@ -56,6 +60,10 @@ class Queue(list):
         return embed
 
 
+class SongRequestError(Exception):
+    pass
+
+
 class Song(dict):
 
     ydl_opts = {
@@ -71,6 +79,13 @@ class Song(dict):
     def __init__(self, url: str, author: discord.Member):
         super().__init__()
         self.download_info(url, author)
+
+        if self.duration_raw > DURATION_CEILING:
+            raise SongRequestError(f'Your song was too long, keep it under {DURATION_CEILING_STRING}')
+        elif self.get('is_live', True):
+            raise SongRequestError('Invalid video - either live stream or unsupported website.')
+        elif self.url is None:
+            raise SongRequestError('Invalid URL provided or no video found.')
 
     @property
     def url(self):
