@@ -222,9 +222,10 @@ class Music(commands.Cog):
 
     async def play_all_songs(self, guild: discord.Guild):
         queue = self.music_queues.get(guild)
+        voice = self.voice_clients.get(guild)
 
         # Play next song until queue is empty
-        while queue:
+        while queue or voice.is_playing():
             await self.wait_for_end_of_song(guild)
 
             song = queue.next_song()
