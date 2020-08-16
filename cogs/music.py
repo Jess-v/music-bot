@@ -285,6 +285,9 @@ class Music(commands.Cog):
         queue = self.music_queues.get(guild)
         last_song = queue.current_song
 
+        while voice.is_playing():
+            await asyncio.sleep(10)
+
         await asyncio.sleep(300)
         if queue.current_song == last_song:
             await voice.disconnect()
