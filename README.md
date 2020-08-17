@@ -18,6 +18,8 @@ This will be assuming that you are running the bot on an Ubuntu-based Linux dist
 - asyncio
 
 >pip3 install discord.py[voice] youtube_dl asyncio
+or
+>pip3 install -r requirements.txt
 
 ### Generate config.py
 In the root directory create file named config.py
