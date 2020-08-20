@@ -77,6 +77,7 @@ class Music(commands.Cog):
             self.voice_clients[ctx.guild] = None
             await ctx.send('Stopping playback')
             await voice.disconnect()
+            self.voice_clients[guild] = None
         else:
             await ctx.send('You\'re not in a voice channel with me.')
 
@@ -291,6 +292,7 @@ class Music(commands.Cog):
         await asyncio.sleep(300)
         if queue.current_song == last_song:
             await voice.disconnect()
+            self.voice_clients[guild] = None
 
     def client_in_same_channel(self, author: discord.Member, guild: discord.Guild):
         '''Checks to see if a client is in the same channel as the bot.'''
