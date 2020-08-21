@@ -138,12 +138,8 @@ class Song(dict):
         return self.get('thumbnail', 'http://i.imgur.com/dDTCO6e.png')
 
     @property
-    def requested_by_username(self):
-        return self.get('requested_by', 'Unknown requester')
-
-    @property
-    def requested_by_id(self):
-        return self.get('requested_by_id', 1)
+    def requested_by(self):
+        return self.get('requested_by', None)
 
     def download_info(self, url: str, author: discord.Member):
         with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
@@ -153,5 +149,4 @@ class Song(dict):
                 self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
 
             self['url'] = url
-            self['requested_by'] = str(author.name)
-            self['requested_by_id'] = author.id
+            self['requested_by'] = author.name
