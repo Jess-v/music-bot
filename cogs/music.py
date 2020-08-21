@@ -212,8 +212,7 @@ class Music(commands.Cog):
         for pos, song in enumerate(queue[:SONGS_PER_PAGE * page], start=SONGS_PER_PAGE * (page - 1)):
             title = set_str_len(song.title, 65)
             uploader = set_str_len(song.uploader, 35)
-            requested_by = song.requested_by.name
-            to_send += f'{set_str_len(f"{pos + 1})", 4)}{title}|{uploader}|{requested_by}\n'
+            to_send += f'{set_str_len(f"{pos + 1})", 4)}{title}|{uploader}|{song.requested_by.display_name}\n'
 
         await ctx.send(to_send + '```')
 

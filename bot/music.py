@@ -55,7 +55,7 @@ class Queue(list):
         embed.add_field(name='Views', value=song.views, inline=True)
         embed.add_field(name='Likes', value=song.likes, inline=True)
         embed.add_field(name='Dislikes', value=song.dislikes, inline=True)
-        embed.add_field(name='Requested By', value=song.requested_by_username, inline=True)
+        embed.add_field(name='Requested By', value=song.requested_by.display_name, inline=True)
 
         return embed
 
