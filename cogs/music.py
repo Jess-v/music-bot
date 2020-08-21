@@ -23,12 +23,12 @@ class Music(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.music_queues = defaultdict(Queue)
 
     @commands.command()
     async def play(self, ctx: commands.Context, url: str, *args: str):
         '''Adds a song to the queue either by YouTube URL or YouTube Search.'''
 
-        self.music_queues = defaultdict(Queue)
         music_queue = self.music_queues[ctx.guild]
         voice = get(self.bot.voice_clients, guild=ctx.guild)
 
@@ -55,7 +55,7 @@ class Music(commands.Cog):
         await ctx.send(f'Queued song: {song.title}')
 
         if voice is None or not voice.is_connected():
-            voice = await channel.connect()
+            await channel.connect()
 
         await self.play_all_songs(ctx.guild)
 
@@ -268,14 +268,14 @@ class Music(commands.Cog):
         queue.clear_skip_votes()
 
     async def wait_for_end_of_song(self, guild: discord.Guild):
-        voice = get(self.bot.voice_clients, guild=guild)
+        voice = get(self.bot.voice_clients, Guild=guild)
         while voice.is_playing():
             await asyncio.sleep(1)
 
     async def inactivity_disconnect(self, guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
-        voice = get(self.bot.voice_clients, guild=guild)
+        voice = get(self.bot.voice_clients, Guild=guild)
         queue = self.music_queues.get(guild)
         last_song = queue.current_song
 
