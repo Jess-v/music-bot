@@ -5,6 +5,7 @@ from collections import defaultdict
 import discord
 import youtube_dl
 from discord.ext import commands
+from discord.utils import get
 from pathlib import Path
 
 from bot.music import Queue, Song, SongRequestError
@@ -22,7 +23,6 @@ class Music(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.voice_clients = {}
 
     @commands.command()
     async def play(self, ctx: commands.Context, url: str, *args: str):
@@ -30,7 +30,7 @@ class Music(commands.Cog):
 
         self.music_queues = defaultdict(Queue)
         music_queue = self.music_queues[ctx.guild]
-        voice = self.voice_clients.get(ctx.guild)
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         try:
             channel = ctx.message.author.voice.channel
@@ -55,7 +55,7 @@ class Music(commands.Cog):
         await ctx.send(f'Queued song: {song.title}')
 
         if voice is None or not voice.is_connected():
-            self.voice_clients[ctx.guild] = await channel.connect()
+            voice = await channel.connect()
 
         await self.play_all_songs(ctx.guild)
 
@@ -64,13 +64,12 @@ class Music(commands.Cog):
     async def stop(self, ctx: commands.Context):
         '''Admin command that stops playback of music and clears out the music queue.'''
 
-        voice = self.voice_clients.get(ctx.guild)
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
         if self.client_in_same_channel(ctx.message.author, ctx.guild):
             voice.stop()
             queue.clear()
-            self.voice_clients[ctx.guild] = None
             await ctx.send('Stopping playback')
             await voice.disconnect()
         else:
@@ -80,7 +79,7 @@ class Music(commands.Cog):
     async def skip(self, ctx: commands.Context):
         '''Puts in your vote to skip the currently played song.'''
 
-        voice = self.voice_clients.get(ctx.guild)
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
         queue = self.music_queues.get(ctx.guild)
 
         if not self.client_in_same_channel(ctx.message.author, ctx.guild):
@@ -112,7 +111,7 @@ class Music(commands.Cog):
     async def fskip(self, ctx: commands.Context):
         '''Admin command that forces skipping of the currently playing song.'''
 
-        voice = self.voice_clients.get(ctx.guild)
+        voice = get(self.bot.voice_clients, guild=ctx.guild)
 
         if not self.client_in_same_channel(ctx.message.author, ctx.guild):
             await ctx.send('You\'re not in a voice channel with me.')
@@ -220,7 +219,6 @@ class Music(commands.Cog):
 
     async def play_all_songs(self, guild: discord.Guild):
         queue = self.music_queues.get(guild)
-        voice = self.voice_clients.get(guild)
 
         # Play next song until queue is empty
         while queue:
@@ -238,7 +236,7 @@ class Music(commands.Cog):
 
         audio_dir = os.path.join('.', 'audio')
         audio_path = os.path.join(audio_dir, f'{guild.id}.mp3')
-        voice = self.voice_clients.get(guild)
+        voice = get(self.bot.voice_clients, guild=guild)
 
         queue = self.music_queues.get(guild)
         ydl_opts = {
@@ -271,14 +269,14 @@ class Music(commands.Cog):
         queue.clear_skip_votes()
 
     async def wait_for_end_of_song(self, guild: discord.Guild):
-        voice = self.voice_clients.get(guild)
+        voice = get(self.bot.voice_clients, guild=guild)
         while voice.is_playing():
             await asyncio.sleep(1)
 
     async def inactivity_disconnect(self, guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
-        voice = self.voice_clients.get(guild)
+        voice = get(self.bot.voice_clients, guild=guild)
         queue = self.music_queues.get(guild)
         last_song = queue.current_song
 
@@ -292,7 +290,7 @@ class Music(commands.Cog):
     def client_in_same_channel(self, author: discord.Member, guild: discord.Guild):
         '''Checks to see if a client is in the same channel as the bot.'''
 
-        voice = self.voice_clients.get(guild)
+        voice = get(self.bot.voice_clients, guild=guild)
 
         try:
             channel = author.voice.channel
