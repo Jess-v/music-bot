@@ -268,14 +268,14 @@ class Music(commands.Cog):
         queue.clear_skip_votes()
 
     async def wait_for_end_of_song(self, guild: discord.Guild):
-        voice = get(self.bot.voice_clients, Guild=guild)
+        voice = get(self.bot.voice_clients, guild=guild)
         while voice.is_playing():
             await asyncio.sleep(1)
 
     async def inactivity_disconnect(self, guild: discord.Guild):
         '''If a song is not played for 5 minutes, automatically disconnects bot from server.'''
 
-        voice = get(self.bot.voice_clients, Guild=guild)
+        voice = get(self.bot.voice_clients, guild=guild)
         queue = self.music_queues.get(guild)
         last_song = queue.current_song
 
