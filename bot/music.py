@@ -149,4 +149,4 @@ class Song(dict):
                 self.update(ydl.extract_info(self['entries'][0]['webpage_url'], download=False))
 
             self['url'] = url
-            self['requested_by'] = author.name
+            self['requested_by'] = author
