@@ -1,5 +1,5 @@
 import discord
-import youtube_dl
+import yt_dlp
 
 DURATION_CEILING = 20 * 60
 
@@ -142,7 +142,7 @@ class Song(dict):
         return self.get('requested_by', None)
 
     def download_info(self, url: str, author: discord.Member):
-        with youtube_dl.YoutubeDL(self.ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
             self.update(ydl.extract_info(url, download=False))
 
             if not url.startswith('https'):

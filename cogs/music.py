@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 
 import discord
-import youtube_dl
+import yt_dlp
 from discord.ext import commands
 from discord.utils import get
 from pathlib import Path
@@ -256,7 +256,7 @@ class Music(commands.Cog):
         except OSError:
             pass
 
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             try:
                 ydl.download([f'{song.url}'])
             except:
