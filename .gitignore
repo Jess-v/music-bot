@@ -7,3 +7,4 @@
 /bot/__pycache__
 /cogs/__pycache__
 /venv
+.env
