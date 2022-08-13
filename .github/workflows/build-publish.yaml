@@ -1,0 +1,30 @@
+name: Build and Publish Image
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  build-and-push-docker-image:
+    name: Build Docker image and push to repo
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Docker Login
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Docker Build
+        run: docker build . --file Dockerfile --tag jessvv/music-bot:latest
+      - name: Docker Push Latest
+        run: docker push jessvv/music-bot:latest
+      - name: Docker Tag Semver
+        run: docker tag jessvv/music-bot:latest jessvv/music-bot:${{ env.RELEASE_VERSION }}
+      - name: Docker Push Semver
+        run: docker push jessvv/music-bot:${{ env.RELEASE_VERSION }}
