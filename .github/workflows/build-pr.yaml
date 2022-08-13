@@ -3,7 +3,7 @@ name: Build PR Check
 on:
   pull_request:
     branches:
-      - main
+      - master
 
 env:
   PR_NUMBER: ${{ github.event.number }}
