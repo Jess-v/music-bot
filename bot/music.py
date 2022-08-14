@@ -1,10 +1,6 @@
 import discord
 import yt_dlp
-
-DURATION_CEILING = 20 * 60
-
-DURATION_CEILING_STRING = '20mins'
-
+import config
 
 class Queue(list):
 
@@ -80,8 +76,8 @@ class Song(dict):
         super().__init__()
         self.download_info(url, author)
 
-        if self.duration_raw > DURATION_CEILING:
-            raise SongRequestError(f'Your song was too long, keep it under {DURATION_CEILING_STRING}')
+        if self.duration_raw > config.MUSIC_MAX_DURATION_MINS:
+            raise SongRequestError(f'Your song was too long, keep it under {config.MUSIC_MAX_DURATION_MINS}mins')
         elif self.get('is_live', True):
             raise SongRequestError('Invalid video - either live stream or unsupported website.')
         elif self.url is None:
