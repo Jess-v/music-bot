@@ -1,11 +1,10 @@
 from discord.ext import commands
 import os
+from bot import config
 
-prefix = os.getenv('DISCORD_COMMAND_PREFIX')
-apiToken = os.getenv('DISCORD_API_TOKEN')
+config.load()
 
-
-bot = commands.Bot(command_prefix=prefix)
+bot = commands.Bot(command_prefix=config.DISCORD_COMMAND_PREFIX)
 
 @bot.event
 async def on_ready():
@@ -13,5 +12,5 @@ async def on_ready():
 
 bot.load_extension('cogs.music')
 
-bot.run(apiToken)
+bot.run(config.DISCORD_API_TOKEN)
 

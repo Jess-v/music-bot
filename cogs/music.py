@@ -8,10 +8,8 @@ from discord.ext import commands
 from discord.utils import get
 from pathlib import Path
 
+from bot import config
 from bot.music import Queue, Song, SongRequestError
-
-SONGS_PER_PAGE = 10
-
 
 def set_str_len(s: str, length: int):
     '''Adds whitespace or trims string to enforce a specific size'''
@@ -203,13 +201,13 @@ class Music(commands.Cog):
             await ctx.send('I don\'t have anything in my queue right now.')
             return
 
-        if len(queue) < SONGS_PER_PAGE * (page - 1):
+        if len(queue) < config.MUSIC_QUEUE_PER_PAGE * (page - 1):
             await ctx.send('I don\'t have that many pages in my queue.')
             return
 
         to_send = f'```\n    {set_str_len("Song", 66)}{set_str_len("Uploader", 36)}Requested By\n'
 
-        for pos, song in enumerate(queue[:SONGS_PER_PAGE * page], start=SONGS_PER_PAGE * (page - 1)):
+        for pos, song in enumerate(queue[:config.MUSIC_QUEUE_PER_PAGE * page], start=config.MUSIC_QUEUE_PER_PAGE * (page - 1)):
             title = set_str_len(song.title, 65)
             uploader = set_str_len(song.uploader, 35)
             to_send += f'{set_str_len(f"{pos + 1})", 4)}{title}|{uploader}|{song.requested_by.display_name}\n'

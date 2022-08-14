@@ -1,7 +1,20 @@
-![Docker Pulls](https://img.shields.io/docker/pulls/jessvv/music-bot?style=for-the-badge) ![Docker Stars](https://img.shields.io/docker/stars/jessvv/music-bot?style=for-the-badge) ![Latest Image Version](https://img.shields.io/docker/v/jessvv/music-bot?style=for-the-badge)
+![Build](https://img.shields.io/github/workflow/status/Jess-v/music-bot/Build%20and%20Publish%20Image) 
+![Latest Version](https://img.shields.io/docker/v/jessvv/music-bot?sort=semver)
+![Image Pulls](https://img.shields.io/docker/pulls/jessvv/music-bot)
+![Docker Stars](https://img.shields.io/docker/stars/jessvv/music-bot)
+![Image Size](https://img.shields.io/docker/image-size/jessvv/music-bot)
 
 # music-bot
 This is a Dockerized Discord music bot based upon Python and the [discord.py](https://discordpy.readthedocs.io/en/stable/) library. 
+
+## Environment Variables
+
+| Variable                 | Default | Description                                                           | Required? |
+|--------------------------|---------|-----------------------------------------------------------------------|-----------|
+| `DISCORD_COMMAND_PREFIX` | `!`     | Character(s) that each bot command will be prefixed with              | `False`   |
+| `DISCORD_API_TOKEN`      | `None`  | Discord Bot Auth Token                                                | `True`    |
+| `MUSIC_MAX_DURATION_MINS`| `20`    | The maximum length in minutes of a video that is allowed to be played | `False`   |
+| `MUSIC_QUEUE_PER_PAGE`   | `10`    | The number of songs that appear in each page of the queue             | `False`   |
 
 ## Setup
 
