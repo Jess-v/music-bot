@@ -1,4 +1,4 @@
-![Build](https://img.shields.io/github/workflow/status/Jess-v/music-bot/Build%20and%20Publish%20Image) 
+![Build](https://img.shields.io/github/actions/workflow/status/Jess-v/music-bot/build-publish.yml) 
 ![Latest Version](https://img.shields.io/docker/v/jessvv/music-bot?sort=semver)
 ![Image Pulls](https://img.shields.io/docker/pulls/jessvv/music-bot)
 ![Docker Stars](https://img.shields.io/docker/stars/jessvv/music-bot)
