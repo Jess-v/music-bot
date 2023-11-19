@@ -43,15 +43,15 @@ class Queue(list):
 
         embed = discord.Embed(title="Audio Info")
         embed.set_thumbnail(url=song.thumbnail)
-        embed.add_field(name='Song', value=song.title, inline=True)
-        embed.add_field(name='Uploader', value=song.uploader, inline=True)
-        embed.add_field(name='Duration', value=song.duration_formatted, inline=True)
-        embed.add_field(name='Description', value=song.description, inline=True)
-        embed.add_field(name='Upload Date', value=song.upload_date_formatted, inline=True)
-        embed.add_field(name='Views', value=song.views, inline=True)
-        embed.add_field(name='Likes', value=song.likes, inline=True)
-        embed.add_field(name='Dislikes', value=song.dislikes, inline=True)
-        embed.add_field(name='Requested By', value=song.requested_by.display_name, inline=True)
+        embed.add_field(name='제목', value=song.title, inline=True)
+        embed.add_field(name='업로더', value=song.uploader, inline=True)
+        embed.add_field(name='총 영상 길', value=song.duration_formatted, inline=True)
+        embed.add_field(name='설명', value=song.description, inline=True)
+        embed.add_field(name='업로드 한 날', value=song.upload_date_formatted, inline=True)
+        embed.add_field(name='조회수', value=song.views, inline=True)
+        embed.add_field(name='좋아요', value=song.likes, inline=True)
+        embed.add_field(name='싫어요', value=song.dislikes, inline=True)
+        embed.add_field(name='나 부려먹는 사람람', value=song.requested_by.display_name, inline=True)
 
         return embed
 
@@ -77,11 +77,11 @@ class Song(dict):
         self.download_info(url, author)
 
         if self.duration_raw > config.MUSIC_MAX_DURATION_MINS*60:
-            raise SongRequestError(f'Your song was too long, keep it under {config.MUSIC_MAX_DURATION_MINS}mins')
+            raise SongRequestError(f'이거 너무 긴데 {config.MUSIC_MAX_DURATION_MINS}분 안으로 되어 있는 영상으로 다시 틀어주세요')
         elif self.get('is_live', True):
-            raise SongRequestError('Invalid video - either live stream or unsupported website.')
+            raise SongRequestError('링크가 틀렸거나 지원되지 않는 사이트 같은ㄷㅔ요')
         elif self.url is None:
-            raise SongRequestError('Invalid URL provided or no video found.')
+            raise SongRequestError('무언가가 틀린 거 같네요요')
 
     @property
     def url(self):
